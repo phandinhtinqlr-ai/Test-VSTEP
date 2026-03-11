@@ -114,7 +114,7 @@ export default function App() {
     const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
     
     if (!apiKey || apiKey === '""' || apiKey === "''") {
-      alert("Lỗi: Không tìm thấy GEMINI_API_KEY.\n\nBẠN CẦN LÀM 2 BƯỚC:\n1. Thêm biến GEMINI_API_KEY trong Settings -> Environment Variables trên Vercel.\n2. QUAN TRỌNG: Sau khi Save, bạn phải vào tab Deployments và chọn 'Redeploy' thì ứng dụng mới nhận mã mới.");
+      alert("Lỗi: Không tìm thấy GEMINI_API_KEY.\n\nCÁCH SỬA DỨT ĐIỂM TRÊN VERCEL:\n1. Vào Settings -> Environment Variables.\n2. Thêm biến mới với tên là: VITE_GEMINI_API_KEY (phải có chữ VITE_ ở đầu).\n3. Dán mã API vào phần Value và nhấn Save.\n4. QUAN TRỌNG: Vào tab Deployments, nhấn dấu '...' ở bản mới nhất và chọn 'Redeploy'.");
       return;
     }
 
