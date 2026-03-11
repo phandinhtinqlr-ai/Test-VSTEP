@@ -1,0 +1,5 @@
+{
+  "name": "VSTEP Speaking AI Coach",
+  "description": "Professional VSTEP Speaking Part 2 preparation with AI-generated samples, scoring, and feedback.",
+  "requestFramePermissions": ["microphone"]
+}
