@@ -31,6 +31,7 @@ import {
 
 // Speech Recognition Type Definition
 interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
   results: SpeechRecognitionResultList;
 }
 
@@ -109,6 +110,11 @@ export default function App() {
   }, []);
 
   const handleGenerate = async () => {
+    if (!process.env.GEMINI_API_KEY) {
+      alert("Lỗi: Thiếu GEMINI_API_KEY. Nếu bạn đang chạy trên Vercel, hãy đảm bảo đã thêm biến môi trường này trong dashboard.");
+      return;
+    }
+
     setIsLoading(true);
     setContent(null);
     setAudioUrl(null);
@@ -123,10 +129,13 @@ export default function App() {
       // 2. Generate Audio in background using the EXACT sample answer text
       generateAudio(result.sampleAnswer).then(audio => {
         if (audio) setAudioUrl(audio);
+      }).catch(e => {
+        console.error("Audio generation failed:", e);
       });
       
     } catch (error) {
       console.error("Error generating content:", error);
+      alert("Có lỗi xảy ra khi tạo bài mẫu. Vui lòng kiểm tra kết nối mạng hoặc API key.");
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +162,7 @@ export default function App() {
       recognitionRef.current.start();
       setIsRecording(true);
     } else {
-      alert("Speech recognition is not supported in this browser.");
+      alert("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói (Speech Recognition). Vui lòng sử dụng Chrome hoặc Edge trên máy tính để có trải nghiệm tốt nhất.");
     }
   };
 
