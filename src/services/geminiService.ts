@@ -1,7 +1,8 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 const getApiKey = () => {
-  const key = process.env.GEMINI_API_KEY;
+  // Check both standard and VITE_ prefixed for maximum compatibility on Vercel
+  const key = process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
   if (!key) {
     console.warn("GEMINI_API_KEY is not defined. Please set it in your environment variables.");
   }
