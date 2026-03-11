@@ -247,3 +247,101 @@ export const scoreSpeech = async (originalText: string, transcribedText: string)
 
   return JSON.parse(response.text || "{}");
 };
+
+export const generateVstepPart3Content = async (
+  topic: string, 
+  ideas: string[],
+  level: VstepLevel
+): Promise<VstepContent> => {
+  const prompt = `
+    Bạn là AI luyện thi VSTEP Speaking chuyên nghiệp.
+    Hãy tạo bài nói VSTEP Part 3 (Topic Development) cho đề bài sau:
+    Topic: ${topic}
+    Ideas: ${ideas.join(', ')}
+    
+    TRÌNH ĐỘ YÊU CẦU: ${level}
+
+    QUY TẮC BẮT BUỘC SỬ DỤNG TEMPLATE SAU:
+    1. INTRODUCTION:
+       - Nếu là lợi ích: "There are several benefits of ${topic} and I believe three/ four key ones stand out:" hoặc "The ${topic} has greatly improved our lives in three/ four key ways:"
+       - Nếu là tác hại: "The ${topic} has several negative impacts in three/ four key ways:" hoặc "${topic} tends to cause various problems such as:"
+    2. BODY:
+       - Topic sentence: "One key benefit of using ${topic} is that...", "Another advantages of ${topic} is that...", "One major drawback of ${topic} is that...", "Another problem is...", "Thirdly, finally, last but not least,..."
+       - Supporting sentence: "This can lead to...", "As a result, ...", "Consequently, ...", "For example, ..."
+    3. CONCLUSION:
+       - "In conclusion, ${topic} [offers several benefits / has several drawbacks], particularly in terms of ...."
+       - Personal comment: "Overall, I believe that ${topic} is [beneficial / harmful], and people should [take advantage of it / use it responsibly]."
+
+    QUY TẮC KHÁC:
+    - Ngôn ngữ: Phù hợp trình độ ${level}.
+    - Mindmap: Gợi ý sơ đồ tư duy để phát triển ý tưởng.
+    - practiceVersion: Hãy tạo một phiên bản bài nói được chia thành các đoạn ngắn, có đánh dấu các cụm từ nối (linking words) bằng cách để trong ngoặc vuông [ ] để người học dễ theo dõi cấu trúc template.
+
+    Trả về JSON: {
+      topic, 
+      sampleAnswer, 
+      practiceVersion, 
+      translation, 
+      vocabulary: [{word, meaning, example}], 
+      mindmap: {
+        centralIdea: "Tóm tắt ngắn gọn chủ đề",
+        nodes: [
+          { title: "Idea 1", details: ["chi tiết 1", "chi tiết 2"] },
+          { title: "Idea 2", details: ["chi tiết 1"] },
+          { title: "Idea 3", details: ["chi tiết 1"] }
+        ]
+      }
+    }
+  `;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: [{ parts: [{ text: prompt }] }],
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          topic: { type: Type.STRING },
+          sampleAnswer: { type: Type.STRING },
+          practiceVersion: { type: Type.STRING },
+          translation: { type: Type.STRING },
+          vocabulary: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                word: { type: Type.STRING },
+                meaning: { type: Type.STRING },
+                example: { type: Type.STRING },
+              },
+              required: ["word", "meaning", "example"],
+            },
+          },
+          mindmap: {
+            type: Type.OBJECT,
+            properties: {
+              centralIdea: { type: Type.STRING },
+              nodes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    title: { type: Type.STRING },
+                    details: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  },
+                  required: ["title", "details"],
+                },
+              },
+            },
+            required: ["centralIdea", "nodes"],
+          },
+        },
+        required: ["topic", "sampleAnswer", "practiceVersion", "translation", "vocabulary", "mindmap"],
+      },
+    },
+  });
+
+  const result = JSON.parse(response.text || "{}");
+  return { ...result, level };
+};

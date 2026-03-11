@@ -22,6 +22,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   generateVstepContent, 
+  generateVstepPart3Content,
   generateAudio, 
   scoreSpeech, 
   VstepContent, 
@@ -53,11 +54,19 @@ declare global {
   }
 }
 
+type View = 'selection' | 'part2' | 'part3';
+
 export default function App() {
+  const [view, setView] = useState<View>('selection');
   const [topic, setTopic] = useState('If you win 1 billion VND, what will you do?');
   const [optionA, setOptionA] = useState('buy gold');
   const [optionB, setOptionB] = useState('buy a house');
   const [optionC, setOptionC] = useState('save money in the bank');
+  
+  const [idea1, setIdea1] = useState('Career opportunities');
+  const [idea2, setIdea2] = useState('Cultural understanding');
+  const [idea3, setIdea3] = useState('Brain development');
+
   const [selectedLevel, setSelectedLevel] = useState<VstepLevel>('B2');
   
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -126,7 +135,12 @@ export default function App() {
     
     try {
       // 1. Generate Text Content First (using Flash model for speed)
-      const result = await generateVstepContent(topic, optionA, optionB, optionC, selectedLevel);
+      let result;
+      if (view === 'part2') {
+        result = await generateVstepContent(topic, optionA, optionB, optionC, selectedLevel);
+      } else {
+        result = await generateVstepPart3Content(topic, [idea1, idea2, idea3].filter(i => i.trim() !== ''), selectedLevel);
+      }
       setContent(result);
       
       // 2. Generate Audio in background using the EXACT sample answer text
@@ -189,18 +203,45 @@ export default function App() {
     }
   };
 
+  const resetState = (newView: View) => {
+    setView(newView);
+    setContent(null);
+    setAudioUrl(null);
+    setScore(null);
+    setTranscript('');
+    if (newView === 'part2') {
+      setTopic('If you win 1 billion VND, what will you do?');
+    } else {
+      setTopic('The benefits of learning a foreign language');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F2ED] text-[#1a1a1a] font-sans selection:bg-emerald-100">
       {/* Header */}
       <header className="border-b border-black/5 bg-white/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => resetState('selection')}>
             <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
               <Sparkles size={18} />
             </div>
             <h1 className="font-semibold text-lg tracking-tight">VSTEP Speaking AI Coach</h1>
           </div>
           <div className="flex items-center gap-4">
+            <nav className="hidden md:flex gap-6 text-xs font-bold uppercase tracking-widest text-black/40 mr-4">
+              <button 
+                onClick={() => resetState('part2')}
+                className={`hover:text-emerald-600 transition-colors ${view === 'part2' ? 'text-emerald-600' : ''}`}
+              >
+                Part 2
+              </button>
+              <button 
+                onClick={() => resetState('part3')}
+                className={`hover:text-emerald-600 transition-colors ${view === 'part3' ? 'text-emerald-600' : ''}`}
+              >
+                Part 3
+              </button>
+            </nav>
             <div className="flex bg-[#F5F2ED] p-1 rounded-xl border border-black/5">
               {(['B1', 'B2', 'C1'] as VstepLevel[]).map((lvl) => (
                 <button
@@ -216,70 +257,138 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <div className="hidden sm:flex items-center gap-4 text-xs font-medium text-black/40 uppercase tracking-widest">
-              <div className="w-1 h-1 bg-black/20 rounded-full" />
-              <span>Part 2: Solution Discussion</span>
-            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12">
-        {/* Input Section */}
-        <section className="mb-12">
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
-            <h2 className="text-2xl font-serif italic mb-6 flex items-center gap-2">
-              <BookOpen className="text-emerald-600" size={24} />
-              Tạo đề bài luyện tập
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Topic</label>
-                <input 
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                  placeholder="Nhập chủ đề..."
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Option A (Best Choice)</label>
-                <input 
-                  value={optionA}
-                  onChange={(e) => setOptionA(e.target.value)}
-                  className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                  placeholder="Lựa chọn tốt nhất..."
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Option B</label>
-                <input 
-                  value={optionB}
-                  onChange={(e) => setOptionB(e.target.value)}
-                  className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                  placeholder="Lựa chọn 2..."
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Option C</label>
-                <input 
-                  value={optionC}
-                  onChange={(e) => setOptionC(e.target.value)}
-                  className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                  placeholder="Lựa chọn 3..."
-                />
-              </div>
-            </div>
-            <button 
-              onClick={handleGenerate}
-              disabled={isLoading}
-              className="mt-8 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        {view === 'selection' ? (
+          <div className="grid md:grid-cols-2 gap-8 py-12">
+            <motion.div 
+              whileHover={{ y: -5 }}
+              onClick={() => resetState('part2')}
+              className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-black/5 cursor-pointer group"
             >
-              {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />}
-              {isLoading ? 'Đang tạo bài mẫu...' : `Tạo bài nói mẫu (${selectedLevel})`}
-            </button>
+              <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 mb-8 group-hover:scale-110 transition-transform">
+                <BookOpen size={28} />
+              </div>
+              <h2 className="text-3xl font-serif italic mb-4">Part 2: Solution Discussion</h2>
+              <p className="text-black/40 leading-relaxed mb-8">
+                Thảo luận giải pháp cho một tình huống cụ thể. Bạn sẽ chọn một trong ba phương án và giải thích lý do.
+              </p>
+              <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm uppercase tracking-widest">
+                Bắt đầu luyện tập <ChevronRight size={16} />
+              </div>
+            </motion.div>
+
+            <motion.div 
+              whileHover={{ y: -5 }}
+              onClick={() => resetState('part3')}
+              className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-black/5 cursor-pointer group"
+            >
+              <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 mb-8 group-hover:scale-110 transition-transform">
+                <Sparkles size={28} />
+              </div>
+              <h2 className="text-3xl font-serif italic mb-4">Part 3: Topic Development</h2>
+              <p className="text-black/40 leading-relaxed mb-8">
+                Phát triển một chủ đề dựa trên sơ đồ gợi ý. Bạn sẽ trình bày quan điểm và mở rộng ý tưởng của mình.
+              </p>
+              <div className="flex items-center gap-2 text-purple-600 font-bold text-sm uppercase tracking-widest">
+                Bắt đầu luyện tập <ChevronRight size={16} />
+              </div>
+            </motion.div>
           </div>
-        </section>
+        ) : (
+          <>
+            {/* Input Section */}
+            <section className="mb-12">
+              <div className="bg-white rounded-3xl p-8 shadow-sm border border-black/5">
+                <h2 className="text-2xl font-serif italic mb-6 flex items-center gap-2">
+                  <BookOpen className="text-emerald-600" size={24} />
+                  {view === 'part2' ? 'Tạo đề thảo luận giải pháp' : 'Tạo đề phát triển chủ đề'}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Topic</label>
+                    <input 
+                      value={topic}
+                      onChange={(e) => setTopic(e.target.value)}
+                      className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                      placeholder="Nhập chủ đề..."
+                    />
+                  </div>
+                  {view === 'part2' ? (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Option A (Best Choice)</label>
+                        <input 
+                          value={optionA}
+                          onChange={(e) => setOptionA(e.target.value)}
+                          className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                          placeholder="Lựa chọn tốt nhất..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Option B</label>
+                        <input 
+                          value={optionB}
+                          onChange={(e) => setOptionB(e.target.value)}
+                          className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                          placeholder="Lựa chọn 2..."
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Option C</label>
+                        <input 
+                          value={optionC}
+                          onChange={(e) => setOptionC(e.target.value)}
+                          className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                          placeholder="Lựa chọn 3..."
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Idea 1</label>
+                        <input 
+                          value={idea1}
+                          onChange={(e) => setIdea1(e.target.value)}
+                          className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                          placeholder="Ý tưởng 1..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Idea 2</label>
+                        <input 
+                          value={idea2}
+                          onChange={(e) => setIdea2(e.target.value)}
+                          className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                          placeholder="Ý tưởng 2..."
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-black/40 mb-2">Idea 3</label>
+                        <input 
+                          value={idea3}
+                          onChange={(e) => setIdea3(e.target.value)}
+                          className="w-full bg-[#F5F2ED] border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                          placeholder="Ý tưởng 3..."
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <button 
+                  onClick={handleGenerate}
+                  disabled={isLoading}
+                  className="mt-8 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isLoading ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />}
+                  {isLoading ? 'Đang tạo bài mẫu...' : `Tạo bài nói mẫu (${selectedLevel})`}
+                </button>
+              </div>
+            </section>
 
         <AnimatePresence mode="wait">
           {content && (
@@ -335,10 +444,21 @@ export default function App() {
                   </div>
 
                   <div className="bg-emerald-900 text-white rounded-3xl p-8 shadow-xl">
-                    <h3 className="text-xl font-serif italic mb-6 flex items-center gap-2">
-                      <Mic size={22} />
-                      Speaking Practice Version
-                    </h3>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-serif italic flex items-center gap-2">
+                        <Mic size={22} />
+                        Luyện Đọc Mẫu (Reading Practice)
+                      </h3>
+                      {audioUrl && (
+                        <button 
+                          onClick={playAudio}
+                          className="flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full hover:bg-white/20 transition-all border border-white/10"
+                        >
+                          <Volume2 size={18} />
+                          <span className="text-xs font-bold">Listen</span>
+                        </button>
+                      )}
+                    </div>
                     <div className="space-y-4 font-medium text-emerald-50/90 text-lg">
                       {content.practiceVersion.split('\n').map((line, i) => (
                         <p key={i} className="border-l-2 border-emerald-500/30 pl-4 py-1 hover:border-emerald-400 transition-colors">
@@ -540,8 +660,10 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+          </>
+        )}
 
-        {!content && !isLoading && (
+        {view !== 'selection' && !content && !isLoading && (
           <div className="text-center py-24 opacity-20">
             <Sparkles size={64} className="mx-auto mb-4" />
             <p className="text-xl font-serif italic">Nhập đề bài để bắt đầu luyện tập</p>
